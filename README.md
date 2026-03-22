@@ -51,11 +51,26 @@ The stdio proxy applies to MCP servers launched with a **`command`** in config. 
 
 ## npm / npx
 
-The `crossfire-mcp` package on npm runs `postinstall` to install the Python CLI from PyPI. From a git clone with `pyproject.toml` present, postinstall uses editable `pip install -e .` instead.
+The npm package is a thin wrapper: **`postinstall`** runs **`pip`** / **`pipx`** to install **`crossfire-mcp` from [PyPI](https://pypi.org/project/crossfire-mcp/)** (Python 3.10+ on `PATH`). In a git clone, `postinstall` uses **`pip install -e .`** when `pyproject.toml` is present.
+
+**There is no `npx install …` — use one of:**
+
+```bash
+npm install -g crossfire-mcp
+crossfire doctor
+```
+
+```bash
+npx --yes crossfire-mcp@latest -- doctor
+```
 
 ```bash
 npx --yes crossfire-mcp@latest -- dashboard
 ```
+
+If **`postinstall`** warns or the `crossfire` command is missing, run **`pip install crossfire-mcp`** or **`pipx install crossfire-mcp`**, then ensure **`~/.local/bin`** (pip `--user`) or your pipx bin directory is on **`PATH`**.
+
+**Releases:** publish the **`crossfire-mcp`** wheel to PyPI (`python -m build`, `twine upload dist/*`) and keep **`package.json`** / **`pyproject.toml`** versions in sync with **`npm publish`**.
 
 ## License
 

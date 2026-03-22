@@ -103,23 +103,21 @@ function installEditableDev(pyParts) {
 
 function installFromPyPI(pyParts, pkgVersion) {
   const specPinned = `crossfire-mcp==${pkgVersion}`;
+  const py = pyParts.join(' ');
 
+  // Prefer latest PyPI release without pinning first. npm and PyPI versions are not
+  // always published in lockstep (e.g. npm 0.1.1 while PyPI is still 0.1.0).
   try {
     execSync('pipx --version', { stdio: 'pipe' });
     try {
-      execSync(`pipx install ${specPinned}`, { stdio: 'inherit', shell: true });
+      execSync('pipx install crossfire-mcp', { stdio: 'inherit', shell: true });
       return true;
     } catch {
       try {
         execSync('pipx upgrade crossfire-mcp', { stdio: 'inherit', shell: true });
         return true;
       } catch {
-        try {
-          execSync('pipx install crossfire-mcp', { stdio: 'inherit', shell: true });
-          return true;
-        } catch {
-          /* fall through to pip */
-        }
+        /* fall through to pip */
       }
     }
   } catch {
@@ -127,26 +125,36 @@ function installFromPyPI(pyParts, pkgVersion) {
   }
 
   try {
-    execSync(`${pyParts.join(' ')} -m pip install --user ${specPinned}`, {
+    execSync(`${py} -m pip install --user crossfire-mcp`, {
       stdio: 'inherit',
       shell: true,
     });
     return true;
   } catch {
-    try {
-      execSync(`${pyParts.join(' ')} -m pip install --user crossfire-mcp`, {
-        stdio: 'inherit',
-        shell: true,
-      });
-      return true;
-    } catch {
-      console.warn(
-        '[crossfire-mcp] Could not install crossfire-mcp from PyPI. Install manually:\n' +
-          '  pip install crossfire-mcp\n' +
-          '  # or: pipx install crossfire-mcp\n'
-      );
-      return false;
-    }
+    /* try exact pin last (fails if that wheel was never uploaded) */
+  }
+
+  try {
+    execSync('pipx --version', { stdio: 'pipe' });
+    execSync(`pipx install ${specPinned}`, { stdio: 'inherit', shell: true });
+    return true;
+  } catch {
+    /* last pip attempt */
+  }
+
+  try {
+    execSync(`${py} -m pip install --user ${specPinned}`, {
+      stdio: 'inherit',
+      shell: true,
+    });
+    return true;
+  } catch {
+    console.warn(
+      '[crossfire-mcp] Could not install crossfire-mcp from PyPI. Install manually:\n' +
+        '  pip install crossfire-mcp\n' +
+        '  # or: pipx install crossfire-mcp\n'
+    );
+    return false;
   }
 }
 
@@ -175,4 +183,15 @@ function main() {
   installFromPyPI(pyParts, want);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  console.warn('[crossfire-mcp] postinstall error:', err && err.message ? err.message : err);
+  console.warn(
+    '[crossfire-mcp] Install the Python CLI manually, then ensure it is on PATH:\n' +
+      '  pip install crossfire-mcp\n' +
+      '  # or: pipx install crossfire-mcp\n'
+  );
+}
+// Do not fail `npm install` / `npx` if pip is externally managed or PyPI is unreachable.
+process.exit(0);
