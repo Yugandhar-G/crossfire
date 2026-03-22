@@ -1,2 +1,13 @@
-# Include packaged dashboard static assets when present (copy dashboard/dist to server/web_dist/ before build).
+# Dashboard static assets (run: cd dashboard && npm run build && copy dist -> server/web_dist/)
 recursive-include server/web_dist *
+
+# PyPI sdist should match the wheel: no test suite, demos, or IDE-only trees.
+prune tests
+prune demo
+
+global-exclude *.py[cod]
+global-exclude __pycache__
+global-exclude .DS_Store
+
+include LICENSE
+include README.md

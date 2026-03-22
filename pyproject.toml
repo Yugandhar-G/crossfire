@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 # PyPI distribution name (CLI commands remain `crossfire` / `crossfire-proxy`).
 # The unqualified name `crossfire` is taken on PyPI by another project.
 name = "crossfire-mcp"
-version = "0.1.3"
+version = "0.1.4"
 description = "MCP & A2A security proxy with real-time threat detection"
 readme = "README.md"
 license = "MIT"
@@ -55,13 +55,17 @@ crossfire = "proxy.__main__:main"
 crossfire-proxy = "proxy.proxy_stdio_main:main"
 
 [tool.setuptools.packages.find]
+where = ["."]
 include = ["proxy*", "server*", "shared*"]
+exclude = ["tests*", "demo*", "dashboard*", "integrations*"]
 
 [tool.setuptools.package-data]
 server = ["web_dist/**/*"]
 
 [tool.setuptools]
 include-package-data = true
+
+# Wheel installs only the packages above + package-data. Sdist is trimmed via MANIFEST.in.
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

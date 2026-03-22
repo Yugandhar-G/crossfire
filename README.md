@@ -29,6 +29,20 @@ Build the dashboard once so the server can serve the full UI (default `http://lo
 cd dashboard && npm ci && npm run build && cd ..
 ```
 
+### `pip install crossfire-mcp` (PyPI)
+
+The published **wheel** installs only the runtime:
+
+| Shipped | Purpose |
+|--------|---------|
+| **`proxy/`** | MCP/A2A proxy, CLI, detectors, installer |
+| **`server/`** | Dashboard API (FastAPI) + bundled **`web_dist/`** UI when you build before release |
+| **`shared/`** | Event schema (Python) |
+
+Console scripts: **`crossfire`**, **`crossfire-proxy`**.
+
+**Not** included in the wheel or PyPI sdist: **`tests/`**, **`demo/`**, **`dashboard/`** source, or other repo-only files. (Runtime Python remains readable in `site-packages`, like any interpreter package.)
+
 ## Usage
 
 ```bash
