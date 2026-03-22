@@ -5,7 +5,7 @@ __pycache__/
 !demo/sandbox/.env
 node_modules/
 dashboard/dist/
-# Copied from dashboard/dist for PyPI wheels (see scripts/sync_dashboard_dist.py)
+# Copied from dashboard/dist for PyPI wheels
 server/web_dist/
 *.egg-info/
 .venv/

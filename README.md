@@ -57,10 +57,6 @@ The `crossfire-mcp` package on npm runs `postinstall` to install the Python CLI 
 npx --yes crossfire-mcp@latest -- dashboard
 ```
 
-## Publishing
-
-See **[PUBLISHING.md](PUBLISHING.md)** for wheels, syncing the dashboard into the package, and PyPI/npm release steps.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).

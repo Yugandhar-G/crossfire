@@ -1,2 +1,2 @@
-# Include packaged dashboard static assets when present (run scripts/sync_dashboard_dist.py before sdist/wheel).
+# Include packaged dashboard static assets when present (copy dashboard/dist to server/web_dist/ before build).
 recursive-include server/web_dist *
