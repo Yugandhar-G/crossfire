@@ -1,6 +1,6 @@
 {
   "name": "crossfire-mcp",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "MCP & A2A security proxy with real-time threat detection dashboard",
   "engines": {
     "node": ">=18"

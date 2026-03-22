@@ -98,6 +98,28 @@ function spawnCrossfire(binary, args) {
   });
 }
 
+function canImportProxy(pyParts) {
+  try {
+    execSync(`${pyParts.join(' ')} -c "import proxy"`, { stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function spawnPythonModuleProxy(pyParts, args) {
+  const child = spawn(pyParts[0], [...pyParts.slice(1), '-m', 'proxy', ...args], {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    env: process.env,
+  });
+  child.on('exit', (code) => process.exit(code ?? 0));
+  child.on('error', (err) => {
+    console.error(`Failed to start Crossfire: ${err.message}`);
+    process.exit(1);
+  });
+}
+
 let args = process.argv.slice(2);
 if (args.length === 0) {
   args = ['start'];
@@ -123,12 +145,18 @@ if (pythonCrossfire) {
     process.exit(1);
   });
 } else {
-  console.error(
-    'Crossfire Python tools are not installed, or `crossfire` on PATH is only the npm shim.\n' +
-      'Install from PyPI, then retry:\n' +
-      '  pip install crossfire-mcp\n' +
-      '  # or: pipx install crossfire-mcp\n' +
-      'Ensure `~/.local/bin` (pip --user) or your pipx bin dir is on PATH before the npm global bin.'
-  );
-  process.exit(1);
+  const pyParts = resolvePython();
+  checkPythonVersion(pyParts);
+  if (canImportProxy(pyParts)) {
+    spawnPythonModuleProxy(pyParts, args);
+  } else {
+    console.error(
+      'Crossfire Python tools are not installed, or `crossfire` on PATH is only the npm shim.\n' +
+        'Install from PyPI, then retry:\n' +
+        '  pip install crossfire-mcp\n' +
+        '  # or: pipx install crossfire-mcp\n' +
+        'Ensure `~/.local/bin` (pip --user) or your pipx bin dir is on PATH before the npm global bin.'
+    );
+    process.exit(1);
+  }
 }

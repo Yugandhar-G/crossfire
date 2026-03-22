@@ -68,7 +68,7 @@ npx --yes crossfire-mcp@latest -- doctor
 npx --yes crossfire-mcp@latest -- dashboard
 ```
 
-If **`postinstall`** warns or the `crossfire` command is missing, run **`pip install crossfire-mcp`** or **`pipx install crossfire-mcp`**, then ensure **`~/.local/bin`** (pip `--user`) or your pipx bin directory is on **`PATH`**.
+If **`postinstall`** warns or the `crossfire` command is missing, run **`pip install crossfire-mcp`** or **`pipx install crossfire-mcp`**, then ensure **`~/.local/bin`** (pip `--user`) or your pipx bin directory is on **`PATH`**. The npm shim also falls back to **`python3 -m proxy …`** when the package is installed but the **`crossfire`** script is not on **`PATH`** (common with **conda** or **`npx`** PATH ordering).
 
 **Releases:** publish the **`crossfire-mcp`** wheel to PyPI (`python -m build`, `twine upload dist/*`) and keep **`package.json`** / **`pyproject.toml`** versions in sync with **`npm publish`**.
 
