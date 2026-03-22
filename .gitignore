@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.env
+.env.*
+!demo/sandbox/.env
+node_modules/
+dashboard/dist/
+# Copied from dashboard/dist for PyPI wheels (see scripts/sync_dashboard_dist.py)
+server/web_dist/
+*.egg-info/
+.venv/
+dist/
+build/
+.crossfire-backup
+
+# Local / ephemeral
+crossfire-audit.jsonl
+*.tsbuildinfo
+.cursor/security-mcp-snapshot/
+
+# Internal hackathon pitch (optional local copy)
+crossfire-proxy-final-2026-03-21.md

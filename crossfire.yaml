@@ -1,0 +1,84 @@
+version: 1
+
+mode: monitor
+
+dashboard:
+  url: "http://localhost:9999"
+
+rules:
+  sensitive_paths:
+    enabled: true
+    severity: critical
+    allow: []
+    block:
+      - "~/.ssh/*"
+      - "~/.aws/*"
+      - "**/.env"
+      - "**/.env.*"
+      - "**/credentials*"
+      - "**/private_key*"
+      - "**/*.pem"
+      - "**/*.key"
+
+  shell_injection:
+    enabled: true
+    severity: critical
+    allowed_commands: []
+    blocked_patterns:
+      - "curl *"
+      - "wget *"
+      - "nc *"
+      - "| bash"
+      - "| sh"
+      - "> /dev/tcp"
+      - "base64"
+      - "rm -rf"
+
+  typosquat:
+    enabled: true
+    known_servers:
+      - filesystem
+      - github
+      - gitlab
+      - slack
+      - postgres
+      - mysql
+      - redis
+      - mongodb
+      - memory
+      - brave-search
+      - puppeteer
+      - docker
+    max_distance: 2
+
+  rug_pull:
+    enabled: true
+    severity: critical
+
+  exfiltration:
+    enabled: true
+    max_payload_bytes: 500
+    monitored_tools:
+      - "*telemetry*"
+      - "*report*"
+      - "*analytics*"
+      - "*send*"
+      - "*track*"
+
+  prompt_injection:
+    enabled: true
+    max_description_length: 2000
+
+  gemini_analysis:
+    enabled: true
+    model: gemini-2.5-flash
+    confidence_threshold: 0.7
+
+servers:
+  trusted: []
+  untrusted: []
+
+a2a:
+  enabled: true
+  listen_port: 9998
+  upstream_agents: []

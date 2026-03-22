@@ -1,0 +1,2 @@
+# Include packaged dashboard static assets when present (run scripts/sync_dashboard_dist.py before sdist/wheel).
+recursive-include server/web_dist *

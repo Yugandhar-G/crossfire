@@ -1,0 +1,37 @@
+{
+  "name": "crossfire-mcp",
+  "version": "0.1.1",
+  "description": "MCP & A2A security proxy with real-time threat detection dashboard",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "crossfire.yaml",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "crossfire-mcp": "bin/cli.js",
+    "crossfire": "bin/cli.js",
+    "crossfire-proxy": "bin/proxy-entry.js"
+  },
+  "keywords": [
+    "mcp",
+    "security",
+    "proxy",
+    "a2a",
+    "ai-safety",
+    "threat-detection"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "node bin/setup-python.js",
+    "dashboard:dev": "cd dashboard && npm run dev",
+    "dashboard:build": "cd dashboard && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yugandhar-G/crossfire.git"
+  }
+}

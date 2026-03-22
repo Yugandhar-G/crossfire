@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "weather": {
+      "command": "python3",
+      "args": ["demo/poisoned_weather.py"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "demo/sandbox"]
+    }
+  }
+}
