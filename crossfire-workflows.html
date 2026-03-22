@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crossfire – Complete Workflow Diagrams</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #1e3a5f;
+    --accent: #00ff88;
+    --accent2: #00d4ff;
+    --threat: #ff3366;
+    --warn: #ffaa00;
+    --text: #e2e8f0;
+    --text-dim: #8899aa;
+    --mcp: #00d4ff;
+    --a2a: #a855f7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .hero {
+    padding: 60px 40px 40px;
+    text-align: center;
+    background: linear-gradient(180deg, #0d1525 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    max-width: 700px;
+    margin: 0 auto;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .toc {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 40px;
+  }
+  .toc h2 {
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .toc-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toc-item:hover {
+    border-color: var(--accent);
+    background: var(--surface2);
+    transform: translateY(-2px);
+  }
+  .toc-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 600;
+    min-width: 28px;
+  }
+  .toc-label { font-size: 0.95rem; }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px 80px;
+  }
+  section {
+    margin-top: 60px;
+    scroll-margin-top: 30px;
+  }
+  section h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  section h2 .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1rem;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 10px;
+    border-radius: 4px;
+  }
+  .subtitle {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 20px;
+  }
+  .desc {
+    color: var(--text);
+    margin-bottom: 20px;
+    max-width: 800px;
+    line-height: 1.8;
+  }
+  .desc strong { color: var(--accent2); }
+  .diagram-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .diagram-box .mermaid { display: flex; justify-content: center; }
+  .step-list {
+    list-style: none;
+    counter-reset: step;
+    margin: 20px 0;
+  }
+  .step-list li {
+    counter-increment: step;
+    padding: 10px 0 10px 48px;
+    position: relative;
+    border-left: 2px solid var(--border);
+    margin-left: 16px;
+  }
+  .step-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: -14px;
+    top: 10px;
+    width: 26px;
+    height: 26px;
+    background: var(--surface2);
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    text-align: center;
+    font-size: 0.8rem;
+    line-height: 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .step-list li:last-child { border-left-color: transparent; }
+  .file-ref {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent2);
+    background: rgba(0,212,255,0.08);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge-mcp { background: rgba(0,212,255,0.15); color: var(--mcp); }
+  .badge-a2a { background: rgba(168,85,247,0.15); color: var(--a2a); }
+  .badge-threat { background: rgba(255,51,102,0.15); color: var(--threat); }
+  .badge-server { background: rgba(0,255,136,0.15); color: var(--accent); }
+  .components-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .comp-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+  .comp-card .name {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--accent2);
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+  .comp-card .role { color: var(--text-dim); font-size: 0.82rem; }
+  hr.sep {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 50px 0 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Crossfire Workflows</h1>
+  <p>Complete architecture &amp; data-flow reference for the MCP/A2A security proxy, dashboard server, and React UI.</p>
+</div>
+
+<div class="toc">
+  <h2>// Table of Contents</h2>
+  <div class="toc-grid">
+    <a class="toc-item" href="#w1"><span class="toc-num">01</span><span class="toc-label">System Architecture Overview</span></a>
+    <a class="toc-item" href="#w2"><span class="toc-num">02</span><span class="toc-label">MCP Stdio Proxy Flow</span></a>
+    <a class="toc-item" href="#w3"><span class="toc-num">03</span><span class="toc-label">MCP HTTP Proxy Flow</span></a>
+    <a class="toc-item" href="#w4"><span class="toc-num">04</span><span class="toc-label">A2A Protocol Proxy Flow</span></a>
+    <a class="toc-item" href="#w5"><span class="toc-num">05</span><span class="toc-label">Threat Detection Pipeline</span></a>
+    <a class="toc-item" href="#w6"><span class="toc-num">06</span><span class="toc-label">Guardian Mode Toggle</span></a>
+    <a class="toc-item" href="#w7"><span class="toc-num">07</span><span class="toc-label">Dashboard Server (FastAPI)</span></a>
+    <a class="toc-item" href="#w8"><span class="toc-num">08</span><span class="toc-label">React Dashboard UI</span></a>
+    <a class="toc-item" href="#w9"><span class="toc-num">09</span><span class="toc-label">Installer &amp; CLI Workflow</span></a>
+    <a class="toc-item" href="#w10"><span class="toc-num">10</span><span class="toc-label">Scanner Workflow</span></a>
+    <a class="toc-item" href="#w11"><span class="toc-num">11</span><span class="toc-label">Demo &amp; Sandbox</span></a>
+    <a class="toc-item" href="#w12"><span class="toc-num">12</span><span class="toc-label">npm / Python Bridge</span></a>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- 1. SYSTEM ARCHITECTURE -->
+<section id="w1">
+  <h2><span class="num">01</span> System Architecture Overview</h2>
+  <p class="subtitle">How every component connects end-to-end</p>
+  <p class="desc"><strong>Crossfire</strong> is a transparent security proxy that intercepts MCP (Model Context Protocol) and A2A (Agent-to-Agent) traffic between AI IDEs/SDKs and tool servers. It runs 20+ threat detectors on every message, streams events to a FastAPI hub, and a React dashboard visualizes everything in real-time.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      graph LR
+        subgraph Clients["Clients"]
+          IDE["IDE / Cursor / VS Code"]
+          SDK["Agent SDK / ADK"]
+          A2AClient["A2A Agent Client"]
+        end
+
+        subgraph Proxy["Crossfire Proxy Layer"]
+          STDIO["MCP Stdio Proxy<br/>proxy/proxy.py"]
+          HTTP["MCP HTTP Proxy<br/>proxy/mcp_http_proxy.py"]
+          A2AP["A2A Proxy<br/>proxy/a2a_proxy.py"]
+          DET["Threat Detection<br/>Engine - 20+ detectors"]
+          POL["Policy Engine<br/>proxy/policy.py"]
+        end
+
+        subgraph Servers["Tool Servers"]
+          MCP1["MCP Server A"]
+          MCP2["MCP Server B"]
+          A2AS["A2A Agent Server"]
+        end
+
+        subgraph Dashboard["Dashboard"]
+          FAST["FastAPI Server<br/>:9999"]
+          REACT["React UI<br/>:5173 dev"]
+        end
+
+        IDE -->|stdin/stdout| STDIO
+        SDK -->|HTTP POST| HTTP
+        A2AClient -->|HTTP/SSE| A2AP
+
+        STDIO -->|stdin/stdout| MCP1
+        STDIO -->|stdin/stdout| MCP2
+        HTTP -->|httpx| MCP1
+        A2AP -->|httpx| A2AS
+
+        STDIO --> DET
+        HTTP --> DET
+        A2AP --> DET
+        DET --> POL
+
+        STDIO -->|POST /api/events| FAST
+        HTTP -->|POST /api/events| FAST
+        A2AP -->|POST /api/events| FAST
+        FAST -->|WebSocket /ws| REACT
+    </div>
+  </div>
+
+  <div class="components-grid">
+    <div class="comp-card"><div class="name">proxy/</div><div class="role">MCP + A2A interception, detection, policy</div></div>
+    <div class="comp-card"><div class="name">server/</div><div class="role">FastAPI hub: REST + WS + event store</div></div>
+    <div class="comp-card"><div class="name">dashboard/</div><div class="role">React + React Flow + Tailwind UI</div></div>
+    <div class="comp-card"><div class="name">shared/</div><div class="role">Event schema contract (Py + TS)</div></div>
+    <div class="comp-card"><div class="name">bin/</div><div class="role">npm to Python CLI shims</div></div>
+    <div class="comp-card"><div class="name">demo/</div><div class="role">Poisoned server + fake secrets sandbox</div></div>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- 2. MCP STDIO PROXY -->
+<section id="w2">
+  <h2><span class="num">02</span> MCP Stdio Proxy Flow <span class="badge badge-mcp">MCP</span></h2>
+  <p class="subtitle">proxy/proxy.py · proxy/protocol.py · proxy/proxy_stdio_main.py</p>
+  <p class="desc">The core man-in-the-middle: the IDE thinks it's talking to the MCP server directly, but <strong>crossfire-proxy</strong> sits in between, inspecting every JSON-RPC message on stdin/stdout.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      sequenceDiagram
+        participant IDE as IDE (Cursor/VS Code)
+        participant Proxy as crossfire-proxy
+        participant Det as Detectors + Policy
+        participant Srv as MCP Server (child)
+        participant Dash as Dashboard :9999
+
+        Note over IDE,Srv: Startup
+        IDE->>Proxy: spawn crossfire-proxy -- npx server
+        Proxy->>Srv: spawn child process (original cmd)
+        Proxy->>Proxy: check_server_binding()
+        Proxy->>Dash: resolve dashboard URL
+
+        Note over IDE,Srv: Request Flow (IDE to Server)
+        IDE->>Proxy: stdin JSON-RPC (tools/call)
+        Proxy->>Proxy: protocol.read_message + classify
+        Proxy->>Proxy: unicode_normalize arguments
+        Proxy->>Det: Run 15+ request detectors
+        Det-->>Proxy: list of Threats
+        Proxy->>Proxy: Policy evaluate (block/allow)
+        alt Guardian=BLOCK + critical/high threat
+            Proxy-->>IDE: JSON-RPC error (blocked)
+            Proxy->>Dash: POST /api/events (blocked=true)
+        else Allow
+            Proxy->>Srv: forward request via stdout pipe
+            Proxy->>Dash: POST /api/events (threats attached)
+        end
+
+        Note over IDE,Srv: Response Flow (Server to IDE)
+        Srv->>Proxy: stdout JSON-RPC response
+        Proxy->>Det: Response detectors (sensitive_data, rug_pull)
+        Det-->>Proxy: list of Threats
+        Proxy->>IDE: forward response via stdout
+        Proxy->>Dash: POST /api/events
+        Dash-->>Proxy: guardian_mode in response
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li>IDE's MCP config is rewired to <span class="file-ref">crossfire-proxy</span> by the installer. The original server command is passed after <code>--</code>.</li>
+    <li><span class="file-ref">proxy_stdio_main.py</span> parses CLI args and calls <code>asyncio.run(run_proxy(...))</code>.</li>
+    <li><span class="file-ref">proxy.py &rarr; run_proxy()</span> spawns the real MCP server as a subprocess and creates two async tasks: <code>ide_to_server</code> (request path) and <code>server_to_ide</code> (response path).</li>
+    <li><span class="file-ref">protocol.py</span> reads newline-delimited JSON-RPC from stdin/stdout streams, classifies each message as request / notification / response.</li>
+    <li>For <code>tools/call</code> requests: unicode normalization &rarr; 15+ detectors &rarr; policy check &rarr; optional Gemini enrichment &rarr; <code>make_event()</code> &rarr; <code>broadcast()</code> to dashboard.</li>
+    <li>If Guardian mode is <strong>BLOCK</strong> and severity is critical/high, a JSON-RPC error is returned to the IDE instead of forwarding to the server.</li>
+    <li>Responses from the server pass through response-side detectors (sensitive data leaks, rug-pull hash changes, resource poisoning).</li>
+    <li>Every <code>POST /api/events</code> response from the dashboard carries the current <code>guardian_mode</code>, keeping the proxy synchronized.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 3. MCP HTTP PROXY -->
+<section id="w3">
+  <h2><span class="num">03</span> MCP HTTP Proxy Flow <span class="badge badge-mcp">MCP</span></h2>
+  <p class="subtitle">proxy/mcp_http_proxy.py</p>
+  <p class="desc">For remote MCP servers that use HTTP/SSE transport instead of stdio. A FastAPI reverse proxy that applies the same detection pipeline.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      sequenceDiagram
+        participant Client as SDK / Agent
+        participant Proxy as MCP HTTP Proxy
+        participant Det as Detectors
+        participant Up as Remote MCP Server
+        participant Dash as Dashboard :9999
+
+        Client->>Proxy: POST /mcp (JSON-RPC body)
+        Proxy->>Proxy: Parse JSON body
+        Proxy->>Det: detect_request_threats()
+        Det-->>Proxy: list of Threats
+
+        alt Blocked by Guardian
+            Proxy-->>Client: JSON-RPC error
+            Proxy->>Dash: POST /api/events (blocked)
+        else Allowed
+            Proxy->>Up: httpx POST (forward body)
+            Up-->>Proxy: JSON response OR SSE stream
+            alt SSE stream
+                loop Each SSE data line
+                    Proxy->>Det: detect_response_threats()
+                    Proxy-->>Client: stream SSE line
+                end
+            else JSON response
+                Proxy->>Det: detect_response_threats()
+                Proxy-->>Client: return JSON
+            end
+            Proxy->>Dash: POST /api/events
+        end
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li>SDK or agent sends HTTP POST to the local proxy endpoint instead of the remote MCP server.</li>
+    <li>Proxy parses the JSON-RPC body and runs request-side detectors (same set as stdio minus cross_call tracking).</li>
+    <li>Optionally queries Gemini for AI-powered analysis on suspicious patterns.</li>
+    <li>Forwards to the upstream MCP server via <code>httpx</code>.</li>
+    <li>For SSE responses, each <code>data:</code> line is parsed and scanned for response-side threats.</li>
+    <li>Can hide blocked tools from <code>tools/list</code> responses when configured.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 4. A2A PROXY -->
+<section id="w4">
+  <h2><span class="num">04</span> A2A Protocol Proxy Flow <span class="badge badge-a2a">A2A</span></h2>
+  <p class="subtitle">proxy/a2a_proxy.py</p>
+  <p class="desc">Intercepts Agent-to-Agent protocol traffic (Google's agent interoperability standard). Monitors agent cards, message parts, and session integrity.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      sequenceDiagram
+        participant A1 as Client Agent
+        participant Proxy as A2A Proxy :9998
+        participant Det as A2A Detectors
+        participant A2 as Upstream Agent
+        participant Dash as Dashboard
+
+        Note over A1,A2: Agent Card Discovery
+        A1->>Proxy: GET /.well-known/agent.json
+        Proxy->>A2: Forward GET
+        A2-->>Proxy: agent.json
+        Proxy->>Det: detect_a2a_impersonation (hash card)
+        Proxy-->>A1: Return card
+
+        Note over A1,A2: message/send
+        A1->>Proxy: POST / method=message/send
+        Proxy->>Det: A2A injection + exfiltration scan
+        Proxy->>A2: Forward JSON-RPC
+        A2-->>Proxy: Response with artifacts
+        Proxy->>Det: Scan response + session_smuggling
+        Proxy-->>A1: Return response
+        Proxy->>Dash: POST /api/events
+
+        Note over A1,A2: message/stream SSE
+        A1->>Proxy: POST / method=message/stream
+        Proxy->>A2: Forward + stream SSE
+        loop Each SSE event
+            A2-->>Proxy: data: status/artifact
+            Proxy->>Det: Scan parts + session tracking
+            Proxy-->>A1: Forward SSE event
+        end
+        Proxy->>Dash: POST /api/events
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li>A2A proxy listens on port <strong>9998</strong> (configurable in <span class="file-ref">crossfire.yaml</span>).</li>
+    <li>Agent card requests are forwarded and hashed; subsequent card fetches are compared for <strong>impersonation</strong> (hash change detection).</li>
+    <li>Message parts (text, data, file) are scanned for <strong>injection</strong> and <strong>exfiltration</strong> patterns.</li>
+    <li><span class="file-ref">SessionSmuggleDetector</span> tracks per-session message ratios and timing to detect server-side message injection.</li>
+    <li>SSE streams (<code>message/stream</code>) are intercepted line-by-line for real-time detection.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 5. THREAT DETECTION -->
+<section id="w5">
+  <h2><span class="num">05</span> Threat Detection Pipeline <span class="badge badge-threat">SECURITY</span></h2>
+  <p class="subtitle">proxy/detectors/ &mdash; 20+ modules</p>
+  <p class="desc">Every message through Crossfire passes through a multi-stage detection pipeline. Detectors run on both request and response paths.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      graph TB
+        subgraph Input["Incoming Message"]
+          MSG["JSON-RPC Message<br/>(tool name + arguments)"]
+        end
+
+        MSG --> NORM["Unicode Normalize<br/>(homoglyph to ASCII)"]
+        NORM --> REQ{"Request or<br/>Response?"}
+
+        REQ -->|Request| RD["Request Detectors"]
+        REQ -->|Response| RSPD["Response Detectors"]
+
+        subgraph RD["Request-Side Detectors"]
+          R1["rules.py<br/>shell inject, sensitive paths,<br/>prompt relay, priv escape,<br/>exfil, unknown tool, mem poison"]
+          R2["path_traversal.py<br/>../ and symlinks"]
+          R3["token_passthrough.py<br/>JWT, AWS keys in args"]
+          R4["sql_injection.py<br/>SQLi patterns"]
+          R5["cross_call.py<br/>multi-step chains"]
+          R6["config_poisoning.py<br/>MCP config overwrite"]
+          R7["session_flaws.py<br/>session fixation"]
+          R8["cross_tenant.py<br/>tenant boundary crossing"]
+          R9["neighborjack.py<br/>unsafe bind / DNS rebind"]
+          R10["oauth_confused_deputy.py<br/>OAuth redirect abuse"]
+        end
+
+        subgraph RSPD["Response-Side Detectors"]
+          RS1["sensitive_data.py<br/>secrets in response text"]
+          RS2["rug_pull.py<br/>tool schema hash changed"]
+          RS3["resource_poisoning.py<br/>injection in responses"]
+          RS4["schema_poisoning.py<br/>injection in tool schemas"]
+          RS5["tool_scanner.py<br/>description prompt injection"]
+          RS6["typosquat.py<br/>Levenshtein server names"]
+        end
+
+        RD --> AGG["Aggregate Threats"]
+        RSPD --> AGG
+        AGG --> GEM{"Gemini<br/>enabled?"}
+        GEM -->|Yes| GEMI["gemini_agent.py<br/>LLM secondary analysis"]
+        GEM -->|No| EVT
+        GEMI --> EVT["make_event<br/>+ worst_severity"]
+        EVT --> POL["Policy Engine<br/>block / allow / severity gate"]
+        POL --> OUT["Forward or Block<br/>+ Broadcast to Dashboard"]
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li><strong>Unicode normalization</strong> &mdash; converts homoglyphs and NFC so detectors see clean ASCII-like text.</li>
+    <li><strong>Request detectors</strong> &mdash; run on every <code>tools/call</code>: shell injection patterns, sensitive file paths, credential tokens, SQL injection, path traversal, cross-call chains, config poisoning, session fixation, cross-tenant violations, OAuth abuse, neighbor hijacking.</li>
+    <li><strong>Response detectors</strong> &mdash; run on <code>tools/list</code> and <code>tools/call</code> responses: leaked secrets, tool description injection, schema poisoning, rug-pull (tool hash changes), resource poisoning, typosquatting.</li>
+    <li><strong>Gemini enrichment</strong> (optional) &mdash; if <code>GOOGLE_API_KEY</code> is set, a rolling context buffer is sent to Gemini for secondary AI analysis. Adds <code>gemini_analysis</code> with confidence + explanation to threats.</li>
+    <li><strong>Policy engine</strong> &mdash; evaluates per-server/per-tool rules + severity thresholds. Can block before forwarding.</li>
+    <li><strong>Event builder</strong> &mdash; normalizes everything into a <span class="file-ref">CrossfireEvent</span> dict and POSTs to the dashboard.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 6. GUARDIAN MODE -->
+<section id="w6">
+  <h2><span class="num">06</span> Guardian Mode Toggle <span class="badge badge-server">CONTROL</span></h2>
+  <p class="subtitle">server/guardian.py · proxy/proxy.py · dashboard App.tsx</p>
+  <p class="desc">Guardian mode switches between <strong>MONITOR</strong> (observe only) and <strong>BLOCK</strong> (actively prevent critical/high threats). The state is synchronized across all three layers.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      sequenceDiagram
+        participant UI as React Dashboard
+        participant WS as WebSocket /ws
+        participant API as FastAPI Server
+        participant G as Guardian State
+        participant Proxy as MCP Proxy
+
+        Note over UI,Proxy: User toggles Guardian
+        UI->>WS: set_guardian command, mode=block
+        WS->>API: websocket_endpoint handler
+        API->>G: guardian.set_mode(block)
+        G-->>API: mode = block
+        API->>WS: broadcast guardian_update
+        WS-->>UI: Update UI to BLOCK state
+
+        Note over UI,Proxy: Proxy syncs via event POST
+        Proxy->>API: POST /api/events
+        API-->>Proxy: guardian_mode=block in response
+        Proxy->>Proxy: Update _guardian_mode
+
+        Note over UI,Proxy: Proxy enforces block
+        Proxy->>Proxy: Threat detected severity=critical
+        Proxy->>Proxy: guardian_mode == block so DENY
+        Proxy-->>UI: JSON-RPC error returned to IDE
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li>User clicks the Guardian toggle in the dashboard header.</li>
+    <li>Dashboard sends <code>{command: "set_guardian", mode: "block"}</code> over WebSocket.</li>
+    <li>Server updates the <span class="file-ref">Guardian</span> singleton and broadcasts <code>guardian_update</code> to all connected WS clients.</li>
+    <li>The proxy learns the new mode through the <code>guardian_mode</code> field in <code>POST /api/events</code> responses.</li>
+    <li>In BLOCK mode, the proxy returns JSON-RPC errors for critical/high-severity threats instead of forwarding to the MCP server.</li>
+    <li>REST API also available: <code>GET /api/guardian</code> (read) and <code>POST /api/guardian</code> (set).</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 7. DASHBOARD SERVER -->
+<section id="w7">
+  <h2><span class="num">07</span> Dashboard Server (FastAPI) <span class="badge badge-server">SERVER</span></h2>
+  <p class="subtitle">server/main.py · server/events.py · server/guardian.py</p>
+  <p class="desc">The hub that connects proxies to the UI. Ingests events via REST, stores them in a bounded deque, broadcasts to WebSocket clients, and serves the built React app.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      graph TB
+        subgraph Ingestion["Event Ingestion"]
+          P1["MCP Stdio Proxy"] -->|POST /api/events| RL
+          P2["MCP HTTP Proxy"] -->|POST /api/events| RL
+          P3["A2A Proxy"] -->|POST /api/events| RL
+        end
+
+        RL["Rate Limiter<br/>~200 events/sec"] --> STORE["EventStore<br/>deque maxlen=10000"]
+        STORE --> STATS["Server Stats<br/>calls, threats, tools"]
+        STORE --> BCAST["ConnectionManager<br/>.broadcast()"]
+
+        subgraph Endpoints["REST Endpoints"]
+          E1["GET /api/events<br/>filtered query"]
+          E2["GET /api/servers<br/>per-server stats"]
+          E3["GET /api/stats<br/>aggregate counts"]
+          E4["GET+POST /api/guardian"]
+          E5["POST /api/scan<br/>background scan"]
+          E6["GET+POST /api/config"]
+          E7["GET /health"]
+        end
+
+        subgraph Realtime["WebSocket Hub"]
+          WS["/ws endpoint"]
+          WS --> C1["Browser Client 1"]
+          WS --> C2["Browser Client 2"]
+          WS --> CN["Browser Client N"]
+        end
+
+        BCAST --> WS
+        STORE --> E1
+        STATS --> E2
+        STATS --> E3
+
+        subgraph Static["Static Serving"]
+          DIST["server/web_dist/<br/>or dashboard/dist/"]
+          DIST --> MOUNT["StaticFiles mount at /"]
+        end
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li><strong>Rate limiter</strong> &mdash; per-IP sliding window caps ingestion at ~200 events/sec to prevent flooding.</li>
+    <li><strong>EventStore</strong> &mdash; bounded <code>deque(maxlen=10000)</code> with <code>appendleft</code> (newest first). Per-server stats track calls, threats, tools discovered, sources, and last seen time.</li>
+    <li><strong>ConnectionManager</strong> &mdash; maintains a list of active WebSocket connections. <code>broadcast()</code> sends JSON to all; silently drops dead sockets.</li>
+    <li>Every <code>POST /api/events</code> validates <code>EventIn</code> &rarr; <code>store.add()</code> &rarr; <code>manager.broadcast()</code> &rarr; responds with current <code>guardian_mode</code>.</li>
+    <li>WebSocket clients can send <code>set_guardian</code> commands; server broadcasts <code>guardian_update</code> to all.</li>
+    <li><strong>Scan endpoint</strong> &mdash; <code>POST /api/scan</code> runs the scanner in the background; progress is pushed over WebSocket.</li>
+    <li><strong>Static serving</strong> &mdash; if a built dashboard exists at <code>server/web_dist/</code> or <code>dashboard/dist/</code>, it is mounted at <code>/</code>; otherwise a stub HTML page is served.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 8. REACT DASHBOARD -->
+<section id="w8">
+  <h2><span class="num">08</span> React Dashboard UI</h2>
+  <p class="subtitle">dashboard/src/ · React 19 + React Flow v12 + Tailwind v4</p>
+  <p class="desc">Real-time security monitoring interface with a network topology graph, traffic log, threat details, and Guardian toggle.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      graph TB
+        subgraph Hooks["Data Layer"]
+          WSH["useWebSocket hook<br/>connect, reconnect, events"]
+        end
+
+        subgraph App["App.tsx - Root Shell"]
+          STATE["State: events, guardianMode,<br/>graphFilter, selectedEvent"]
+        end
+
+        WSH --> STATE
+
+        subgraph Components["UI Components"]
+          HDR["Header<br/>stats, connection, guardian toggle"]
+          FG["FlowGraph<br/>React Flow + Dagre layout"]
+          TL["TrafficLog<br/>filterable event list"]
+          TD["ThreatDetail<br/>expandable threat panels"]
+        end
+
+        STATE --> HDR
+        STATE --> FG
+        STATE --> TL
+        STATE --> TD
+
+        subgraph FlowNodes["React Flow Nodes"]
+          SN["SourceNode<br/>IDE / SDK / HTTP"]
+          PN["ProxyNode<br/>Crossfire center"]
+          SVN["ServerNode<br/>MCP servers"]
+          GE["GradientEdge<br/>animated, threat-aware"]
+        end
+
+        FG --> SN
+        FG --> PN
+        FG --> SVN
+        FG --> GE
+
+        subgraph Actions["User Actions"]
+          CLICK["Click graph node<br/>filters traffic log"]
+          TOGGLE["Toggle Guardian<br/>WS set_guardian"]
+          SELECT["Select event<br/>show threat detail"]
+          RESIZE["Drag/collapse<br/>traffic panel"]
+        end
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li><strong>useWebSocket</strong> hook connects to <code>/ws</code> with exponential backoff reconnection. On open, fetches <code>/api/events?limit=500</code> for history hydration and deduplicates by ID.</li>
+    <li><strong>App.tsx</strong> holds all state: events array (capped at 1000), guardian mode, graph filter (source/server), selected event for the detail view.</li>
+    <li><strong>Header</strong> shows connection status (Live/Offline), animated stat counters (servers, events, threats), and the Guardian toggle button.</li>
+    <li><strong>FlowGraph</strong> builds a left-to-right Dagre layout: Source nodes &rarr; Proxy node &rarr; Server nodes. Edges are gradient-colored with threat awareness (glow when threats). Clicking a node filters the traffic log.</li>
+    <li><strong>TrafficLog</strong> is a scrollable, filterable list of events with severity-colored borders, protocol badges (MCP/A2A), source badges, and blocked indicators. Auto-scrolls to top on new events.</li>
+    <li><strong>ThreatDetail</strong> panel expands below the log when a threat event is selected, showing each threat's type, severity, detail, pattern, and optional Gemini AI analysis with confidence score.</li>
+    <li>All animations use <span class="file-ref">motion</span> (Framer Motion) for smooth enter/exit transitions.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 9. INSTALLER & CLI -->
+<section id="w9">
+  <h2><span class="num">09</span> Installer &amp; CLI Workflow</h2>
+  <p class="subtitle">proxy/__main__.py · proxy/installer.py · proxy/doctor.py</p>
+  <p class="desc">The <code>crossfire</code> CLI manages installation, proxy startup, dashboard launch, scanning, and diagnostics.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      graph TB
+        CLI["crossfire CLI<br/>proxy/__main__.py"]
+        CLI --> START
+        CLI --> INSTALL
+        CLI --> SCAN
+        CLI --> DOC
+        CLI --> DEMO
+
+        subgraph START["crossfire start (default)"]
+          S1["Install proxy into IDE configs"] --> S2["Launch uvicorn server :9999"]
+          S2 --> S3["Open browser to dashboard"]
+        end
+
+        subgraph INSTALL["crossfire install / uninstall"]
+          I1["Find IDE MCP configs<br/>Cursor, VS Code, Claude Desktop,<br/>Windsurf, Antigravity"]
+          I1 --> I2["Backup original configs"]
+          I2 --> I3["Rewrite mcpServers entries<br/>to use crossfire-proxy -- original-cmd"]
+          I3 --> I4["Uninstall: restore from backup"]
+        end
+
+        subgraph SCAN["crossfire scan"]
+          SC1["Resolve server commands"] --> SC2["Spawn server + send probes"]
+          SC2 --> SC3["Print scan report"]
+        end
+
+        subgraph DOC["crossfire doctor"]
+          DO1["Check dashboard /health"] --> DO2["Classify each MCP server<br/>proxied / raw / url-only"]
+        end
+
+        subgraph DEMO["crossfire demo"]
+          DM1["Start dashboard"] --> DM2["Print demo instructions"]
+        end
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li><strong>crossfire start</strong> (default command) &mdash; runs <code>install_proxy()</code> to rewrite IDE MCP configs, starts the dashboard server on port 9999, opens the browser.</li>
+    <li><strong>crossfire install</strong> &mdash; finds all supported IDE config files, backs them up, rewrites each <code>mcpServers</code> entry to use <code>crossfire-proxy -- original-command</code>.</li>
+    <li><strong>crossfire uninstall</strong> &mdash; restores from <code>*.json.crossfire-backup</code> files.</li>
+    <li><strong>crossfire scan</strong> &mdash; resolves server commands, spawns each, sends initialize + tools/list + synthetic probes, aggregates findings into a <code>ScanReport</code>.</li>
+    <li><strong>crossfire doctor</strong> &mdash; checks dashboard reachability and classifies each configured server's proxy status.</li>
+    <li><strong>crossfire demo</strong> &mdash; starts the dashboard and prints a 3-act demo script.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 10. SCANNER -->
+<section id="w10">
+  <h2><span class="num">10</span> Scanner Workflow</h2>
+  <p class="subtitle">proxy/scanner.py</p>
+  <p class="desc">Active MCP vulnerability scanner &mdash; spawns servers, probes tools, and generates security reports without going through the live proxy.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      sequenceDiagram
+        participant CLI as crossfire scan / API
+        participant Scan as proxy/scanner.py
+        participant Srv as MCP Server subprocess
+        participant Det as Detectors
+
+        CLI->>Scan: scan_server(command, name)
+        Scan->>Srv: spawn subprocess
+        Scan->>Srv: initialize request
+        Srv-->>Scan: initialize response
+
+        Scan->>Srv: tools/list request
+        Srv-->>Scan: tools/list response
+        Scan->>Det: tool_scanner (description poisoning)
+        Scan->>Det: schema_poisoning (inputSchema)
+
+        loop For each tool
+            Scan->>Scan: _build_probe_arguments
+            Scan->>Srv: tools/call synthetic probe
+            Srv-->>Scan: response
+            Scan->>Det: rules + sensitive_data + cross_call
+        end
+
+        Scan->>Scan: Aggregate ScanFindings
+        Scan-->>CLI: ScanReport
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li>Scanner spawns the MCP server as a child process using the resolved command.</li>
+    <li>Sends <code>initialize</code> to establish the MCP session.</li>
+    <li>Sends <code>tools/list</code> and runs description poisoning + schema poisoning detectors on each tool definition.</li>
+    <li>For each tool, builds synthetic probe arguments from the JSON Schema and sends <code>tools/call</code>.</li>
+    <li>Runs detectors on both the probe requests and server responses.</li>
+    <li>Aggregates all findings into a <code>ScanReport</code> with severity counts and per-tool results.</li>
+    <li>Can be triggered from CLI (<code>crossfire scan</code>) or via the dashboard API (<code>POST /api/scan</code>) with WebSocket progress updates.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 11. DEMO -->
+<section id="w11">
+  <h2><span class="num">11</span> Demo &amp; Sandbox Workflow</h2>
+  <p class="subtitle">demo/ directory</p>
+  <p class="desc">A scripted demonstration that showcases Crossfire detecting real attack patterns against a deliberately poisoned MCP server and fake sensitive files.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      graph LR
+        subgraph Demo["Demo Setup"]
+          CFG["demo_config.json<br/>2 MCP servers"]
+          POI["poisoned_weather.py<br/>tool description injection"]
+          SBX["sandbox/<br/>.env, .ssh/id_rsa, app.py"]
+        end
+
+        subgraph Attack1["Attack 1: Prompt Injection"]
+          P1["get_weather description<br/>says: read ~/.ssh/id_rsa"]
+          P1 --> D1["tool_scanner detects<br/>description injection"]
+        end
+
+        subgraph Attack2["Attack 2: Sensitive Paths"]
+          P2["filesystem server<br/>reads sandbox/.env"]
+          P2 --> D2["rules.py detects<br/>sensitive_paths hit"]
+        end
+
+        subgraph Attack3["Attack 3: Credential Exfil"]
+          P3["report_telemetry tool<br/>exfiltration pattern"]
+          P3 --> D3["rules.py detects<br/>exfil to monitored tool"]
+        end
+
+        CFG --> POI
+        CFG --> SBX
+        POI --> Attack1
+        SBX --> Attack2
+        POI --> Attack3
+
+        D1 --> DASH["Dashboard shows<br/>all threats live"]
+        D2 --> DASH
+        D3 --> DASH
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li><strong>poisoned_weather.py</strong> &mdash; a minimal MCP server with a <code>get_weather</code> tool whose description contains a hidden instruction to read <code>~/.ssh/id_rsa</code>. Also exposes <code>report_telemetry</code> (exfiltration-flagged name).</li>
+    <li><strong>demo_config.json</strong> &mdash; configures two MCP servers: the poisoned weather server and a filesystem server rooted at the <code>sandbox/</code> directory.</li>
+    <li><strong>sandbox/</strong> &mdash; contains bait files: a fake <code>.env</code> (FAKE-DEMO-ONLY credentials), a fake <code>.ssh/id_rsa</code> (FAKE PEM key), and a harmless <code>project/app.py</code>.</li>
+    <li><strong>run-demo.sh</strong> &mdash; starts the dashboard server, opens the browser, and prints a 3-act narrative: (1) poisoned weather traffic, (2) live Gemini analysis, (3) Guardian BLOCK mode.</li>
+    <li>All demo secrets contain "FAKE" or "DEMO-ONLY" in their values per project rules.</li>
+  </ol>
+</section>
+
+<hr class="sep">
+
+<!-- 12. NPM BRIDGE -->
+<section id="w12">
+  <h2><span class="num">12</span> npm / Python Bridge</h2>
+  <p class="subtitle">bin/ · package.json · pyproject.toml</p>
+  <p class="desc">Crossfire is published on both npm and PyPI. The npm package is a thin JavaScript wrapper that resolves and spawns the Python CLI.</p>
+
+  <div class="diagram-box">
+    <div class="mermaid">
+      graph TB
+        subgraph NPM["npm install crossfire-mcp"]
+          PKG["package.json<br/>postinstall runs setup-python.js"]
+        end
+
+        PKG --> DEV{"Dev mode?<br/>pyproject.toml exists"}
+        DEV -->|Yes| VENV["Create .venv<br/>pip install -e .[gemini]"]
+        DEV -->|No| PIPX{"pipx available?"}
+        PIPX -->|Yes| PX["pipx install crossfire-mcp"]
+        PIPX -->|No| PIP["pip install --user crossfire-mcp"]
+
+        subgraph Bins["CLI Shims bin/"]
+          CLIJS["cli.js -> crossfire"]
+          PEJS["proxy-entry.js -> crossfire-proxy"]
+        end
+
+        CLIJS --> FIND["Find Python 3.10+"]
+        FIND --> RESOLVE{"crossfire on PATH?"}
+        RESOLVE -->|Yes| SPAWN1["Spawn Python crossfire"]
+        RESOLVE -->|No| PYMOD["python -m proxy"]
+
+        PEJS --> FIND2["Find crossfire-proxy"]
+        FIND2 --> SPAWN2["Pipe stdin/stdout"]
+
+        subgraph PyPI["pip install crossfire-mcp"]
+          PYPI["pyproject.toml"]
+          PYPI --> CS1["crossfire -> proxy.__main__:main"]
+          PYPI --> CS2["crossfire-proxy -> proxy.proxy_stdio_main:main"]
+        end
+    </div>
+  </div>
+
+  <ol class="step-list">
+    <li><strong>npm postinstall</strong> runs <span class="file-ref">setup-python.js</span> which auto-installs the Python package via pip/pipx.</li>
+    <li><strong>cli.js</strong> finds Python 3.10+, avoids self-recursion, and spawns the real <code>crossfire</code> Python CLI.</li>
+    <li><strong>proxy-entry.js</strong> acts as a stdio pipe: resolves <code>crossfire-proxy</code> on PATH and pipes stdin/stdout for MCP transport.</li>
+    <li><strong>PyPI console scripts</strong> &mdash; <code>crossfire</code> maps to <code>proxy.__main__:main</code>, <code>crossfire-proxy</code> maps to <code>proxy.proxy_stdio_main:main</code>.</li>
+    <li>The dual-publish ensures users can install via <code>npm install crossfire-mcp</code> or <code>pip install crossfire-mcp</code> &mdash; both paths lead to the same Python core.</li>
+  </ol>
+</section>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2332',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#1e3a5f',
+      lineColor: '#00ff88',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a0e17',
+      noteBkgColor: '#1a2332',
+      noteTextColor: '#e2e8f0',
+      noteBorderColor: '#1e3a5f',
+      actorBkg: '#1a2332',
+      actorBorder: '#00d4ff',
+      actorTextColor: '#e2e8f0',
+      signalColor: '#00ff88',
+      signalTextColor: '#e2e8f0',
+      labelBoxBkgColor: '#111827',
+      labelBoxBorderColor: '#1e3a5f',
+      labelTextColor: '#e2e8f0',
+      loopTextColor: '#ffaa00',
+      activationBorderColor: '#00d4ff',
+      activationBkgColor: '#1a2332',
+      sequenceNumberColor: '#00ff88',
+    },
+    flowchart: { curve: 'basis', padding: 20 },
+    sequence: { mirrorActors: false, messageMargin: 40, actorMargin: 80 },
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: 13,
+  });
+</script>
+
+</body>
+</html>
