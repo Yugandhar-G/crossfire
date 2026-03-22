@@ -16,7 +16,10 @@ build/
 # Local / ephemeral
 crossfire-audit.jsonl
 *.tsbuildinfo
-.cursor/security-mcp-snapshot/
+
+# Editor / IDE (keep local only)
+.cursor/
+.vscode/
 
 # Internal hackathon pitch (optional local copy)
 crossfire-proxy-final-2026-03-21.md
