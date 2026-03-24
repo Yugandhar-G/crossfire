@@ -1,7 +1,7 @@
 """Shared event schema -- the contract between proxy and dashboard.
 
 WARNING: This file must stay in sync with shared/event_schema.ts.
-Coordinate changes between Yugandhar (Python) and Ruthvik (TypeScript).
+
 """
 
 from dataclasses import dataclass, field
