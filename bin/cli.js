@@ -150,13 +150,16 @@ if (pythonCrossfire) {
   if (canImportProxy(pyParts)) {
     spawnPythonModuleProxy(pyParts, args);
   } else {
-    console.error(
-      'Crossfire Python tools are not installed, or `crossfire` on PATH is only the npm shim.\n' +
-        'Install from PyPI, then retry:\n' +
-        '  pip install crossfire-mcp\n' +
-        '  # or: pipx install crossfire-mcp\n' +
-        'Ensure `~/.local/bin` (pip --user) or your pipx bin dir is on PATH before the npm global bin.'
-    );
-    process.exit(1);
+    console.error('[crossfire] Python package not found. Installing from PyPI ...');
+    try {
+      execSync(`${pyParts.join(' ')} -m pip install crossfire-mcp`, { stdio: 'inherit' });
+    } catch {
+      console.error(
+        '[crossfire] Auto-install failed. Run manually:\n' +
+          '  pip install crossfire-mcp\n'
+      );
+      process.exit(1);
+    }
+    spawnPythonModuleProxy(pyParts, args);
   }
 }

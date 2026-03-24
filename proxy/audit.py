@@ -1,10 +1,17 @@
 """Audit Logger -- persistent JSONL audit trail with rotation and redaction.
 
-Atomic writes, bounded file size, and automatic secret scrubbing.
+Security hardening:
+ - Restrictive file permissions (0o600) on log files
+ - Increased redaction depth (20 levels, not 5)
+ - List-of-strings redaction for credential arrays
+ - Case-insensitive key matching for redaction
+ - Atomic writes with fsync
 """
 
 import json
 import logging
+import os
+import stat
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,14 +26,27 @@ REDACT_FIELDS = {
     "token",
     "api_key",
     "apikey",
+    "api-key",
     "auth_token",
     "access_token",
+    "refresh_token",
     "private_key",
+    "secret_key",
+    "client_secret",
+    "aws_secret_access_key",
+    "aws_access_key_id",
+    "authorization",
+    "cookie",
+    "session_id",
+    "csrf_token",
     "_hmac_signature",
     "_hmac_nonce",
+    "hmac_secret",
 }
 
 MAX_LINE_SIZE = 100_000
+MAX_REDACT_DEPTH = 20
+_LOG_FILE_MODE = 0o600  # owner read/write only
 
 
 class AuditLogger:
@@ -51,7 +71,18 @@ class AuditLogger:
     def _open(self) -> None:
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
-            self._file = open(self._path, "a", encoding="utf-8")
+            # Open with restrictive permissions
+            fd = os.open(
+                str(self._path),
+                os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+                _LOG_FILE_MODE,
+            )
+            self._file = os.fdopen(fd, "a", encoding="utf-8")
+            # Ensure permissions are correct even if file already existed
+            try:
+                os.chmod(str(self._path), _LOG_FILE_MODE)
+            except OSError:
+                pass
             self._current_size = self._path.stat().st_size if self._path.exists() else 0
         except Exception as e:
             logger.error("Failed to open audit log %s: %s", self._path, e)
@@ -71,7 +102,15 @@ class AuditLogger:
                 }
                 line = json.dumps(entry, default=str, separators=(",", ":"))
                 if len(line) > MAX_LINE_SIZE:
-                    line = line[: MAX_LINE_SIZE - 50] + ',"_truncated":true}'
+                    # Ensure valid JSON even when truncated
+                    truncated = {
+                        "audit_seq": entry["audit_seq"],
+                        "audit_type": entry["audit_type"],
+                        "audit_timestamp": entry["audit_timestamp"],
+                        "_truncated": True,
+                        "_original_size": len(line),
+                    }
+                    line = json.dumps(truncated, separators=(",", ":"))
                 self._file.write(line + "\n")
                 self._file.flush()
                 self._current_size += len(line) + 1
@@ -100,16 +139,34 @@ class AuditLogger:
             if self._file:
                 self._file.close()
                 self._file = None
+
             for i in range(self._max_rotated - 1, 0, -1):
                 src = self._path.with_suffix(f".jsonl.{i}")
                 dst = self._path.with_suffix(f".jsonl.{i + 1}")
-                if src.exists():
+                try:
                     if i + 1 >= self._max_rotated:
-                        src.unlink()
-                    else:
+                        src.unlink(missing_ok=True)
+                    elif src.exists():
                         src.rename(dst)
-            if self._path.exists():
-                self._path.rename(self._path.with_suffix(".jsonl.1"))
+                        # Set permissions on rotated file
+                        try:
+                            os.chmod(str(dst), _LOG_FILE_MODE)
+                        except OSError:
+                            pass
+                except OSError as e:
+                    logger.warning("Rotation step %d failed: %s", i, e)
+
+            try:
+                if self._path.exists():
+                    rotated = self._path.with_suffix(".jsonl.1")
+                    self._path.rename(rotated)
+                    try:
+                        os.chmod(str(rotated), _LOG_FILE_MODE)
+                    except OSError:
+                        pass
+            except OSError as e:
+                logger.warning("Primary rotation failed: %s", e)
+
             self._open()
         except Exception as e:
             logger.error("Audit rotation failed: %s", e)
@@ -130,20 +187,41 @@ class AuditLogger:
         return self._seq
 
 
+def _is_sensitive_key(key: str) -> bool:
+    """Case-insensitive check if key matches any redaction field."""
+    key_lower = key.lower().replace("-", "_")
+    return any(rf in key_lower for rf in REDACT_FIELDS)
+
+
 def _redact(data: dict, depth: int = 0) -> dict:
-    if depth > 5:
-        return data
+    if depth > MAX_REDACT_DEPTH:
+        return {"_redacted": True, "_reason": "max_depth_exceeded"}
     result = {}
     for key, value in data.items():
-        if any(rf in key.lower() for rf in REDACT_FIELDS):
+        if _is_sensitive_key(key):
             result[key] = "[REDACTED]"
         elif isinstance(value, dict):
             result[key] = _redact(value, depth + 1)
         elif isinstance(value, list):
-            result[key] = [
-                _redact(item, depth + 1) if isinstance(item, dict) else item
-                for item in value
-            ]
+            result[key] = _redact_list(value, key, depth + 1)
         else:
             result[key] = value
+    return result
+
+
+def _redact_list(items: list, parent_key: str, depth: int) -> list:
+    """Redact list items, including strings in credential-named lists."""
+    if depth > MAX_REDACT_DEPTH:
+        return ["[REDACTED]"]
+    result = []
+    is_sensitive_parent = _is_sensitive_key(parent_key)
+    for item in items:
+        if isinstance(item, dict):
+            result.append(_redact(item, depth))
+        elif isinstance(item, str) and is_sensitive_parent:
+            result.append("[REDACTED]")
+        elif isinstance(item, list):
+            result.append(_redact_list(item, parent_key, depth + 1))
+        else:
+            result.append(item)
     return result

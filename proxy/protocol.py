@@ -1,4 +1,10 @@
-"""MCP stdio protocol handler -- newline-delimited JSON-RPC 2.0."""
+"""MCP stdio protocol handler -- newline-delimited JSON-RPC 2.0.
+
+Security hardening:
+ - Maximum message size enforcement (10MB default) prevents OOM
+ - Read timeout prevents hanging on malicious slow clients
+ - Proper error propagation for dropped messages
+"""
 
 import asyncio
 import json
@@ -7,6 +13,9 @@ from typing import Literal
 
 
 MessageType = Literal["request", "notification", "response", "unknown"]
+
+MAX_MESSAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+READ_TIMEOUT_SECONDS = 300  # 5 minutes
 
 
 def classify_message(msg: dict) -> MessageType:
@@ -20,17 +29,41 @@ def classify_message(msg: dict) -> MessageType:
 
 
 async def read_message(reader: asyncio.StreamReader) -> dict | None:
-    """Read a single newline-delimited JSON-RPC message from a stream."""
+    """Read a single newline-delimited JSON-RPC message from a stream.
+
+    Enforces MAX_MESSAGE_SIZE to prevent memory exhaustion and
+    READ_TIMEOUT_SECONDS to prevent hanging on stalled connections.
+    """
     try:
-        line = await reader.readline()
+        try:
+            line = await asyncio.wait_for(
+                reader.readline(),
+                timeout=READ_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            sys.stderr.write(
+                f"[crossfire] Read timeout after {READ_TIMEOUT_SECONDS}s\n"
+            )
+            return None
+
         if not line:
             return None
+
+        if len(line) > MAX_MESSAGE_SIZE:
+            sys.stderr.write(
+                f"[crossfire] Message too large ({len(line)} bytes, max {MAX_MESSAGE_SIZE}). Dropped.\n"
+            )
+            return None
+
         decoded = line.decode("utf-8").strip()
         if not decoded:
             return None
         return json.loads(decoded)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         sys.stderr.write(f"[crossfire] Protocol error: {exc}\n")
+        return None
+    except Exception as exc:
+        sys.stderr.write(f"[crossfire] Unexpected protocol error: {exc}\n")
         return None
 
 

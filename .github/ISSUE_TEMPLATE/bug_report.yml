@@ -1,0 +1,102 @@
+name: Bug Report
+description: Report a bug in Crossfire
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the form below.
+
+  - type: input
+    id: version
+    attributes:
+      label: Crossfire Version
+      description: Output of `crossfire --version` or `pip show crossfire-mcp`
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Crossfire is affected?
+      options:
+        - Proxy (stdio relay)
+        - Dashboard (web UI)
+        - Detection Engine
+        - CLI (install/uninstall/scan)
+        - Scanner
+        - A2A Proxy
+        - npm wrapper
+        - Configuration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, IDE, and relevant configuration
+      placeholder: |
+        OS: macOS 15.3
+        Python: 3.12.2
+        IDE: Cursor 0.48
+        MCP servers: filesystem, github
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear description of what happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the bug
+      placeholder: |
+        1. Run `crossfire start`
+        2. Open dashboard at localhost:9999
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened (include error messages, logs, screenshots)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Paste any relevant log output (audit logs, terminal output, browser console)
+      render: shell
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues for duplicates
+          required: true
+        - label: I am using the latest version of Crossfire
+          required: false

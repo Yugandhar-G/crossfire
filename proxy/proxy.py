@@ -13,6 +13,7 @@ import asyncio
 import json
 import os
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -37,6 +38,16 @@ from proxy.detectors.sensitive_data import detect_sensitive_data
 from proxy.detectors.resource_poisoning import detect_resource_poisoning
 from proxy.detectors.typosquat import detect_typosquat
 from proxy.detectors.gemini_agent import record_context, analyze_and_enrich
+# New detectors
+from proxy.detectors.xxe import detect_xxe
+from proxy.detectors.ssti import detect_ssti
+from proxy.detectors.ssrf import detect_ssrf
+from proxy.detectors.deserialization import detect_deserialization
+from proxy.detectors.xss import detect_xss, detect_xss_in_response
+from proxy.detectors.zip_slip import detect_zip_slip
+from proxy.detectors.ldap_xpath import detect_ldap_injection, detect_xpath_injection
+# Decode layer for evasion resistance
+from proxy.detectors.decode_layer import decode_arguments
 from proxy.event_builder import make_event
 from proxy.telemetry_log import log as telemetry_log
 from proxy.protocol import (
@@ -55,6 +66,7 @@ from proxy.unicode_normalize import normalize_text, normalize_arguments
 DASHBOARD_URL = "http://localhost:9999"
 
 _guardian_mode = "monitor"
+_guardian_lock = threading.Lock()
 
 MAX_BROADCAST_RETRIES = 2
 BROADCAST_RETRY_DELAY = 0.1
@@ -72,13 +84,15 @@ def resolve_dashboard_url(config: dict | None = None) -> str:
 
 
 def _get_guardian_mode() -> str:
-    return _guardian_mode
+    with _guardian_lock:
+        return _guardian_mode
 
 
 def _set_guardian_mode(mode: str) -> None:
     global _guardian_mode
-    if mode in ("monitor", "block"):
-        _guardian_mode = mode
+    with _guardian_lock:
+        if mode in ("monitor", "block"):
+            _guardian_mode = mode
 
 
 async def should_block_request(
@@ -232,6 +246,8 @@ async def ide_to_server(
 
             tool_name_n = normalize_text(tool_name)
             arguments_n = normalize_arguments(arguments)
+            # Decode encoded payloads (base64, hex, URL, etc.) for evasion resistance
+            arguments_decoded = decode_arguments(arguments_n)
 
             metrics.record_request(server_name)
 
@@ -266,9 +282,11 @@ async def ide_to_server(
                     continue
 
             try:
+                # Run detectors against both normalized AND decoded arguments
+                # to catch both raw patterns and encoded evasion
                 threats = detect_request_threats(
                     tool_name=tool_name_n,
-                    arguments=arguments_n,
+                    arguments=arguments_decoded,
                     tools_registry=tools_registry,
                     server_name=server_name,
                     config=cfg,
@@ -276,7 +294,7 @@ async def ide_to_server(
                 ts = datetime.now(timezone.utc).isoformat()
                 threats.extend(
                     detect_cross_call(
-                        tool_name_n, arguments_n, server_name, timestamp=ts
+                        tool_name_n, arguments_decoded, server_name, timestamp=ts
                     )
                 )
             except Exception as exc:
@@ -284,33 +302,62 @@ async def ide_to_server(
 
             try:
                 threats.extend(
-                    detect_path_traversal(tool_name_n, arguments_n, config=cfg)
+                    detect_path_traversal(tool_name_n, arguments_decoded, config=cfg)
                 )
                 threats.extend(
-                    detect_token_passthrough(tool_name_n, arguments_n, config=cfg)
+                    detect_token_passthrough(tool_name_n, arguments_decoded, config=cfg)
                 )
                 threats.extend(
-                    detect_sql_injection(tool_name_n, arguments_n, config=cfg)
+                    detect_sql_injection(tool_name_n, arguments_decoded, config=cfg)
                 )
                 threats.extend(
-                    detect_oauth_confused_deputy(tool_name_n, arguments_n, config=cfg)
+                    detect_oauth_confused_deputy(tool_name_n, arguments_decoded, config=cfg)
                 )
                 threats.extend(
-                    detect_config_poisoning(tool_name_n, arguments_n, config=cfg)
+                    detect_config_poisoning(tool_name_n, arguments_decoded, config=cfg)
                 )
                 threats.extend(
-                    detect_session_flaws(tool_name_n, arguments_n, config=cfg)
+                    detect_session_flaws(tool_name_n, arguments_decoded, config=cfg)
                 )
                 threats.extend(
                     detect_cross_tenant(
-                        tool_name_n, arguments_n, server_name, config=cfg
+                        tool_name_n, arguments_decoded, server_name, config=cfg
                     )
                 )
                 threats.extend(
-                    detect_neighborjack(tool_name_n, arguments_n, config=cfg)
+                    detect_neighborjack(tool_name_n, arguments_decoded, config=cfg)
                 )
             except Exception as exc:
                 sys.stderr.write(f"[crossfire] Extended detection error: {exc}\n")
+
+            # New detectors: XXE, SSTI, SSRF, Deserialization, XSS, Zip Slip, LDAP, XPath
+            try:
+                threats.extend(
+                    detect_xxe(tool_name_n, arguments_decoded, config=cfg)
+                )
+                threats.extend(
+                    detect_ssti(tool_name_n, arguments_decoded, config=cfg)
+                )
+                threats.extend(
+                    detect_ssrf(tool_name_n, arguments_decoded, config=cfg)
+                )
+                threats.extend(
+                    detect_deserialization(tool_name_n, arguments_decoded, config=cfg)
+                )
+                threats.extend(
+                    detect_xss(tool_name_n, arguments_decoded, config=cfg)
+                )
+                threats.extend(
+                    detect_zip_slip(tool_name_n, arguments_decoded, config=cfg)
+                )
+                threats.extend(
+                    detect_ldap_injection(tool_name_n, arguments_decoded, config=cfg)
+                )
+                threats.extend(
+                    detect_xpath_injection(tool_name_n, arguments_decoded, config=cfg)
+                )
+            except Exception as exc:
+                sys.stderr.write(f"[crossfire] New detector error: {exc}\n")
 
             if policy_engine and threats:
                 max_sev = max(
@@ -497,6 +544,17 @@ async def server_to_ide(
                     ]
             except Exception as exc:
                 sys.stderr.write(f"[crossfire] Resource poisoning scan error: {exc}\n")
+
+            try:
+                xss_threats = detect_xss_in_response(result_text, config=cfg)
+                if xss_threats:
+                    threats.extend(xss_threats)
+                    extra["xss_in_response"] = [
+                        {"detail": t.detail, "pattern": t.pattern}
+                        for t in xss_threats
+                    ]
+            except Exception as exc:
+                sys.stderr.write(f"[crossfire] XSS response scan error: {exc}\n")
 
         if original_request and original_request.get("method") == "resources/read":
             resource_text = json.dumps(msg.get("result", {}))

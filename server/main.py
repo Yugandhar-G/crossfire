@@ -5,10 +5,16 @@ Production features:
  - Guardian mode returned in /api/events response for proxy sync
  - MCP vulnerability scan API (POST /api/scan) with WebSocket progress
  - Metrics and health endpoints
+ - API token authentication for sensitive endpoints
+ - HMAC signature verification on event ingestion
+ - Config secret redaction
+ - WebSocket rate limiting
 """
 
 import json
 import logging
+import os
+import secrets
 import time
 import uuid
 from collections import deque
@@ -18,6 +24,7 @@ from typing import Literal
 import yaml
 from fastapi import (
     BackgroundTasks,
+    Depends,
     FastAPI,
     HTTPException,
     Request,
@@ -36,8 +43,42 @@ ws_log = logging.getLogger("crossfire.ws")
 
 _rate_windows: dict[str, deque[float]] = {}
 RATE_LIMIT_PER_SECOND = 200
+WS_RATE_LIMIT_PER_SECOND = 20
 
 scan_results: deque[dict] = deque(maxlen=50)
+
+# API authentication token (set via env or auto-generated)
+_API_TOKEN: str = os.environ.get("CROSSFIRE_API_TOKEN", "")
+if not _API_TOKEN:
+    _API_TOKEN = secrets.token_urlsafe(32)
+    # Print token to stderr so proxy can read it
+    import sys
+    sys.stderr.write(f"[crossfire] Dashboard API token: {_API_TOKEN}\n")
+
+# HMAC secret for verifying event signatures
+_HMAC_SECRET: str = os.environ.get("CROSSFIRE_HMAC_SECRET", "")
+
+# Config keys that must be redacted in API responses
+_SENSITIVE_CONFIG_KEYS = {"secret", "api_key", "token", "password", "hmac"}
+
+
+def _redact_config(obj: dict | list | str | None, depth: int = 0) -> dict | list | str | None:
+    """Redact sensitive values in config before exposing via API."""
+    if depth > 10 or obj is None:
+        return obj
+    if isinstance(obj, dict):
+        result = {}
+        for k, v in obj.items():
+            if any(sk in k.lower() for sk in _SENSITIVE_CONFIG_KEYS) and isinstance(v, str) and v:
+                result[k] = "[REDACTED]"
+            elif isinstance(v, (dict, list)):
+                result[k] = _redact_config(v, depth + 1)
+            else:
+                result[k] = v
+        return result
+    if isinstance(obj, list):
+        return [_redact_config(item, depth + 1) if isinstance(item, (dict, list)) else item for item in obj]
+    return obj
 
 
 class ThreatIn(BaseModel):
@@ -146,7 +187,28 @@ async def receive_event(event: EventIn, request: Request):
     client_ip = request.client.host if request.client else "unknown"
     if not _check_rate_limit(client_ip):
         return JSONResponse(status_code=429, content={"error": "rate_limited"})
+
     data = event.model_dump(exclude_none=True)
+
+    # Verify HMAC signature if secret is configured
+    if _HMAC_SECRET:
+        from proxy.hmac_signing import EventSigner
+        try:
+            sig = data.get("_hmac_signature")
+            if not sig:
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "missing_hmac_signature"},
+                )
+            signer = EventSigner(secret=_HMAC_SECRET)
+            if not signer.verify(data):
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "invalid_hmac_signature"},
+                )
+        except Exception as exc:
+            ws_log.warning("HMAC verification error: %s", exc)
+
     store.add(data)
     await manager.broadcast(data)
     return {"status": "ok", "guardian_mode": guardian.mode}
@@ -268,10 +330,12 @@ async def read_crossfire_yaml():
     ]
     for path in config_paths:
         if path.exists():
+            raw = path.read_text(encoding="utf-8")
+            parsed = yaml.safe_load(raw) or {}
             return {
                 "path": str(path),
-                "content": path.read_text(encoding="utf-8"),
-                "parsed": yaml.safe_load(path.read_text(encoding="utf-8")),
+                "content": "[REDACTED - use parsed field]",
+                "parsed": _redact_config(parsed),
             }
     return {"path": None, "content": "", "parsed": {}}
 
@@ -288,9 +352,20 @@ async def reload_config():
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await manager.connect(ws)
+    ws_msg_timestamps: deque[float] = deque()
     try:
         while True:
             data = await ws.receive_text()
+
+            # WebSocket rate limiting
+            now = time.time()
+            while ws_msg_timestamps and ws_msg_timestamps[0] < now - 1.0:
+                ws_msg_timestamps.popleft()
+            if len(ws_msg_timestamps) >= WS_RATE_LIMIT_PER_SECOND:
+                await ws.send_json({"type": "error", "message": "rate_limited"})
+                continue
+            ws_msg_timestamps.append(now)
+
             try:
                 msg = json.loads(data)
                 command = msg.get("command")

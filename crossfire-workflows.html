@@ -240,7 +240,7 @@
     <a class="toc-item" href="#w9"><span class="toc-num">09</span><span class="toc-label">Installer &amp; CLI Workflow</span></a>
     <a class="toc-item" href="#w10"><span class="toc-num">10</span><span class="toc-label">Scanner Workflow</span></a>
     <a class="toc-item" href="#w11"><span class="toc-num">11</span><span class="toc-label">Demo &amp; Sandbox</span></a>
-    <a class="toc-item" href="#w12"><span class="toc-num">12</span><span class="toc-label">npm / Python Bridge</span></a>
+    <a class="toc-item" href="#w12"><span class="toc-num">12</span><span class="toc-label">Distribution &amp; CLI</span></a>
   </div>
 </div>
 
@@ -873,52 +873,57 @@
 
 <hr class="sep">
 
-<!-- 12. NPM BRIDGE -->
+<!-- 12. DISTRIBUTION -->
 <section id="w12">
-  <h2><span class="num">12</span> npm / Python Bridge</h2>
-  <p class="subtitle">bin/ · package.json · pyproject.toml</p>
-  <p class="desc">Crossfire is published on both npm and PyPI. The npm package is a thin JavaScript wrapper that resolves and spawns the Python CLI.</p>
+  <h2><span class="num">12</span> Distribution &amp; CLI</h2>
+  <p class="subtitle">bin/ · package.json · pyproject.toml · .github/workflows/publish.yml</p>
+  <p class="desc">Published to <strong>PyPI</strong> and <strong>npm</strong>. The PyPI wheel ships pre-built dashboard assets in <code>server/web_dist/</code>, so <code>pip install crossfire-mcp &amp;&amp; crossfire start</code> works with zero extra steps. The npm package is a thin shim that auto-installs the Python package from PyPI.</p>
 
   <div class="diagram-box">
     <div class="mermaid">
       graph TB
-        subgraph NPM["npm install crossfire-mcp"]
-          PKG["package.json<br/>postinstall runs setup-python.js"]
+        subgraph UserInstall["User Install"]
+          PIP["pip install crossfire-mcp"]
+          NPX["npx crossfire-mcp"]
         end
 
-        PKG --> DEV{"Dev mode?<br/>pyproject.toml exists"}
-        DEV -->|Yes| VENV["Create .venv<br/>pip install -e .[gemini]"]
-        DEV -->|No| PIPX{"pipx available?"}
-        PIPX -->|Yes| PX["pipx install crossfire-mcp"]
-        PIPX -->|No| PIP["pip install --user crossfire-mcp"]
-
-        subgraph Bins["CLI Shims bin/"]
-          CLIJS["cli.js -> crossfire"]
-          PEJS["proxy-entry.js -> crossfire-proxy"]
+        subgraph PyPIWheel["PyPI Wheel"]
+          PROXY["proxy/"]
+          SERVER["server/ + web_dist/"]
+          SHARED["shared/"]
         end
 
-        CLIJS --> FIND["Find Python 3.10+"]
-        FIND --> RESOLVE{"crossfire on PATH?"}
-        RESOLVE -->|Yes| SPAWN1["Spawn Python crossfire"]
-        RESOLVE -->|No| PYMOD["python -m proxy"]
+        subgraph NpmPkg["npm Package"]
+          CLIJS["bin/cli.js"]
+          SETUP["bin/setup-python.js"]
+        end
 
-        PEJS --> FIND2["Find crossfire-proxy"]
-        FIND2 --> SPAWN2["Pipe stdin/stdout"]
+        PIP --> PyPIWheel
+        NPX --> NpmPkg
+        SETUP -->|"pip install crossfire-mcp"| PyPIWheel
 
-        subgraph PyPI["pip install crossfire-mcp"]
-          PYPI["pyproject.toml"]
-          PYPI --> CS1["crossfire -> proxy.__main__:main"]
-          PYPI --> CS2["crossfire-proxy -> proxy.proxy_stdio_main:main"]
+        subgraph Publish["CI: git tag v*"]
+          BUILD["npm ci &amp;&amp; npm run build"]
+          BUILD --> COPY["dashboard/dist -> server/web_dist/"]
+          COPY --> WHEEL["python -m build -> PyPI"]
+          WHEEL --> NPMPUB["npm publish"]
+        end
+
+        subgraph Bins["CLI Resolution"]
+          CLI["cli.js"] --> FIND["Find Python 3.10+"]
+          FIND --> RESOLVE{"crossfire on PATH?"}
+          RESOLVE -->|Yes| SPAWN["Spawn Python crossfire"]
+          RESOLVE -->|No| AUTO["Auto pip install, then python -m proxy"]
         end
     </div>
   </div>
 
   <ol class="step-list">
-    <li><strong>npm postinstall</strong> runs <span class="file-ref">setup-python.js</span> which auto-installs the Python package via pip/pipx.</li>
-    <li><strong>cli.js</strong> finds Python 3.10+, avoids self-recursion, and spawns the real <code>crossfire</code> Python CLI.</li>
-    <li><strong>proxy-entry.js</strong> acts as a stdio pipe: resolves <code>crossfire-proxy</code> on PATH and pipes stdin/stdout for MCP transport.</li>
-    <li><strong>PyPI console scripts</strong> &mdash; <code>crossfire</code> maps to <code>proxy.__main__:main</code>, <code>crossfire-proxy</code> maps to <code>proxy.proxy_stdio_main:main</code>.</li>
-    <li>The dual-publish ensures users can install via <code>npm install crossfire-mcp</code> or <code>pip install crossfire-mcp</code> &mdash; both paths lead to the same Python core.</li>
+    <li><strong>pip install crossfire-mcp</strong> &mdash; installs the proxy, server, and pre-built dashboard into <code>site-packages</code>. <code>crossfire start</code> runs immediately.</li>
+    <li><strong>npx crossfire-mcp</strong> &mdash; the npm shim auto-installs the Python package from PyPI via <code>setup-python.js</code>, then delegates to <code>crossfire</code>.</li>
+    <li><strong>cli.js</strong> finds Python 3.10+, avoids self-recursion, and spawns the real <code>crossfire</code> Python CLI. If not found, auto-installs from PyPI.</li>
+    <li><strong>GitHub Actions publish workflow</strong> &mdash; triggered on <code>git tag v*</code>: builds the dashboard, copies to <code>server/web_dist/</code>, builds the wheel, uploads to PyPI, then publishes to npm.</li>
+    <li><strong>pyproject.toml</strong> defines <code>crossfire</code> and <code>crossfire-proxy</code> console script entry points.</li>
   </ol>
 </section>
 

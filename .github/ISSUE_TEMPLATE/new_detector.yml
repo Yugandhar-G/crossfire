@@ -1,0 +1,84 @@
+name: New Detector Proposal
+description: Propose a new security detector for the detection engine
+title: "[Detector]: "
+labels: ["detector", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Crossfire's detection engine is modular. Use this template to propose a new detector.
+
+  - type: input
+    id: attack_type
+    attributes:
+      label: Attack Type
+      description: Name of the attack pattern (e.g., "Command Injection via Environment Variables")
+      placeholder: "ATTACK-LABEL"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this attack if undetected?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Attack Description
+      description: Describe the attack pattern. How does it work in the context of MCP/A2A?
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: CVE / References
+      description: Link to CVEs, blog posts, papers, or real-world incidents documenting this attack
+      placeholder: |
+        - CVE-2025-XXXXX
+        - https://example.com/blog/attack-writeup
+
+  - type: textarea
+    id: detection
+    attributes:
+      label: Proposed Detection Approach
+      description: How should the detector identify this attack? What patterns/signals should it look for?
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example Payloads
+      description: Provide example malicious payloads (sanitized) that should trigger detection
+      render: json
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Detection Layer
+      description: Which detection layer should this run in?
+      options:
+        - "Layer 1: Rule Engine (deterministic, <1ms)"
+        - "Layer 2: Cross-Call Tracker (sequence analysis)"
+        - "Layer 3: Gemini AI (context-aware)"
+        - Unsure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to implement this detector
+          required: false

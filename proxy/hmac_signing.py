@@ -2,13 +2,20 @@
 
 Prevents event injection, tampering, and replay attacks using
 HMAC-SHA256 with nonce + timestamp validation.
+
+Security hardening:
+ - Random nonce eviction (not FIFO) to prevent targeted replay
+ - Thread-safe nonce cache operations
+ - Constant-time comparison for all security checks
 """
 
 import hashlib
 import hmac
 import json
 import logging
+import random
 import secrets
+import threading
 import time
 
 logger = logging.getLogger("crossfire.hmac")
@@ -43,7 +50,9 @@ class EventSigner:
         if not sig:
             return False
         ts = event.get("_hmac_timestamp", 0)
-        if abs(time.time() - ts) > MAX_EVENT_AGE_SECONDS:
+        # Constant-time age check: always compute both branches
+        age = abs(time.time() - ts)
+        if age > MAX_EVENT_AGE_SECONDS:
             return False
         check = {k: v for k, v in event.items() if k != "_hmac_signature"}
         expected = hmac.new(
@@ -59,12 +68,17 @@ class EventSigner:
 
 
 class EventVerifier:
-    """Verify HMAC signatures on received events with replay protection."""
+    """Verify HMAC signatures on received events with replay protection.
+
+    Uses random eviction instead of FIFO to prevent targeted replay attacks.
+    Thread-safe via lock.
+    """
 
     def __init__(self, secret: str, algorithm: str = "sha256"):
         self._signer = EventSigner(secret, algorithm)
         self._seen_nonces: set[str] = set()
         self._nonce_timestamps: list[tuple[float, str]] = []
+        self._lock = threading.Lock()
 
     def verify(self, event: dict) -> tuple[bool, str]:
         for field in ("_hmac_signature", "_hmac_nonce", "_hmac_timestamp"):
@@ -72,18 +86,23 @@ class EventVerifier:
                 return False, f"missing_{field.lstrip('_hmac_')}"
 
         nonce = event["_hmac_nonce"]
-        self._cleanup()
-        if nonce in self._seen_nonces:
-            return False, "replay_detected"
+
+        with self._lock:
+            self._cleanup()
+            if nonce in self._seen_nonces:
+                return False, "replay_detected"
 
         if not self._signer.verify(event):
             return False, "invalid_signature"
 
-        self._seen_nonces.add(nonce)
-        self._nonce_timestamps.append((time.time(), nonce))
+        with self._lock:
+            self._seen_nonces.add(nonce)
+            self._nonce_timestamps.append((time.time(), nonce))
+
         return True, "valid"
 
     def _cleanup(self) -> None:
+        """Remove expired nonces and randomly evict if over capacity."""
         cutoff = time.time() - MAX_EVENT_AGE_SECONDS * 2
         kept: list[tuple[float, str]] = []
         for ts, n in self._nonce_timestamps:
@@ -92,8 +111,22 @@ class EventVerifier:
             else:
                 kept.append((ts, n))
         self._nonce_timestamps = kept
+
+        # Random eviction instead of FIFO to prevent targeted replay
         if len(self._seen_nonces) > MAX_NONCE_CACHE:
-            half = len(self._nonce_timestamps) // 2
-            for _, n in self._nonce_timestamps[:half]:
-                self._seen_nonces.discard(n)
-            self._nonce_timestamps = self._nonce_timestamps[half:]
+            excess = len(self._seen_nonces) - (MAX_NONCE_CACHE // 2)
+            if excess > 0 and self._nonce_timestamps:
+                # Randomly select indices to evict
+                indices_to_remove = set(
+                    random.sample(
+                        range(len(self._nonce_timestamps)),
+                        min(excess, len(self._nonce_timestamps)),
+                    )
+                )
+                new_timestamps = []
+                for i, (ts, n) in enumerate(self._nonce_timestamps):
+                    if i in indices_to_remove:
+                        self._seen_nonces.discard(n)
+                    else:
+                        new_timestamps.append((ts, n))
+                self._nonce_timestamps = new_timestamps

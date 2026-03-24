@@ -26,3 +26,9 @@ crossfire-proxy-final-2026-03-21.md
 
 # External repos (not part of Crossfire)
 rocketride-server/
+
+# Launch copy (not for commit)
+LAUNCH.md
+
+# Local test harness
+test-crossfire/

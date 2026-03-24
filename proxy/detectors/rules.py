@@ -54,46 +54,135 @@ SENSITIVE_PATHS_FALLBACK = [
 ]
 
 _SHELL_PATTERNS_DEFAULT = [
+    # -- Network exfiltration tools --
     r"curl\s+",
     r"wget\s+",
     r"nc\s+",
     r"ncat\s+",
     r"netcat\s+",
+    r"socat\s+",
+    r"telnet\s+",
+    # -- Encoding/data manipulation --
     r"base64\s",
     r"xxd\s",
     r"openssl\s+enc",
+    # -- Reverse shells / pipe to interpreter --
     r">\s*/dev/tcp",
     r"\|\s*bash",
     r"\|\s*sh\b",
     r"\|\s*zsh",
+    r"\|\s*ksh",
+    r"\|\s*dash",
+    r"\|\s*csh",
+    r"/bin/sh\s+-i",
+    r"/bin/bash\s+-i",
+    r"bash\s+-c\s+",
+    r"sh\s+-c\s+",
+    r"mkfifo",
+    # -- Destructive commands --
     r"rm\s+-rf",
+    r"rm\s+-r\s",
+    r"rm\s+--no-preserve-root",
     r"chmod\s+777",
+    r"chmod\s+666",
+    # -- Privilege escalation --
     r"sudo\s+",
+    r"doas\s+",
+    r"su\s+-\s",
+    r"su\s+root",
+    # -- Code execution --
     r"eval\s*\(",
     r"exec\s*\(",
     r"python\s+-c",
     r"python3\s+-c",
     r"ruby\s+-e",
     r"perl\s+-e",
-    r"mkfifo",
-    r"/bin/sh\s+-i",
+    r"node\s+-e",
+    r"php\s+-r",
+    r"lua\s+-e",
+    r"powershell\s+",
+    r"pwsh\s+",
+    # -- Absolute path variants (bypass name-only detection) --
+    r"/usr/bin/curl\b",
+    r"/usr/bin/wget\b",
+    r"/bin/chmod\b",
+    r"/usr/bin/nc\b",
+    r"/usr/bin/python",
+    r"/usr/bin/ruby",
+    r"/usr/bin/perl",
+    # -- Python code execution --
+    r"\bos\.system\s*\(",
+    r"\bos\.popen\s*\(",
+    r"\bsubprocess\.(call|run|Popen|check_output|check_call|getoutput)\s*\(",
+    r"\b__import__\s*\(",
+    r"\bimportlib\.import_module\s*\(",
+    r"\bcompile\s*\(.*exec",
+    # -- Node.js code execution --
+    r"\bchild_process\b",
+    r"\bexecSync\s*\(",
+    r"\bspawnSync\s*\(",
+    r"\bexecFile\s*\(",
+    r"\brequire\s*\(\s*['\"]child_process",
+    # -- Shell variable/command substitution --
+    r"\$\(.*(?:curl|wget|nc|bash|sh|chmod|chown)\b",
+    r"`.*(?:curl|wget|nc|bash|sh|chmod|chown)\b.*`",
+    r"\$\{.*(?:curl|wget|nc|bash|sh)\b",
+    # -- Environment variable exfiltration --
     r"export\s+.*(?:KEY|TOKEN|SECRET|PASSWORD)",
+    r"printenv\s+",
+    r"\benv\s+.*=",
+    # -- File descriptor tricks --
+    r"/dev/tcp/",
+    r"/dev/udp/",
+    r">&\s*/dev/tcp",
+    # -- Cron/scheduled tasks --
+    r"crontab\s+-",
+    r"/etc/cron",
+    r"at\s+-f\s",
 ]
 
 PROMPT_RELAY_REGEX = [
     re.compile(p, re.IGNORECASE)
     for p in [
-        r"ignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions",
-        r"disregard\s+(?:the\s+)?(?:system|developer|safety)\s+",
+        # -- Direct instruction override --
+        r"ignore\s+(?:all\s+)?(?:previous|prior|above|earlier|preceding)\s+(?:instructions|rules|guidelines|context|directives)",
+        r"disregard\s+(?:the\s+)?(?:system|developer|safety|previous|prior|above)\s+",
+        r"forget\s+(?:all\s+)?(?:your\s+)?(?:rules|instructions|guidelines|training|constraints|directives)",
+        r"(?:do\s+not|don'?t)\s+follow\s+(?:your|the|any)\s+(?:rules|instructions|guidelines|constraints)",
+        # -- System prompt manipulation --
         r"new\s+system\s+prompt",
-        r"override\s+(?:the\s+)?(?:system|developer)\s+",
-        r"you\s+are\s+now\s+(?:a\s+)?(?:DAN|unrestricted|uncensored)",
-        r"jailbreak",
-        r"bypass\s+(?:content\s+)?(?:policy|filter|safety)",
-        r"pretend\s+(?:you\s+are|to\s+be)\s+(?:root|admin|sudo)",
-        r"repeat\s+(?:the\s+)?(?:user|hidden)\s+message",
+        r"override\s+(?:the\s+)?(?:system|developer|safety)\s+",
+        r"(?:change|modify|replace|update)\s+(?:your\s+)?(?:system\s+)?(?:prompt|instructions|rules)",
+        r"(?:my|this)\s+(?:instructions?|rules?)\s+(?:override|supersede|replace|take\s+precedence)",
+        # -- Role/persona hijacking --
+        r"you\s+are\s+now\s+(?:a\s+)?(?:DAN|unrestricted|uncensored|evil|hacker|unfiltered)",
+        r"(?:act|behave|respond|operate)\s+(?:as\s+(?:if\s+)?)?(?:you\s+(?:are|were)\s+)?(?:a\s+)?(?:root|admin|sudo|superuser|unrestricted|unfiltered)",
+        r"pretend\s+(?:you\s+(?:are|were)|to\s+be)\s+",
+        r"(?:enter|switch\s+to|activate|enable)\s+(?:DAN|jailbreak|unrestricted|developer|god)\s*(?:mode)?",
+        r"(?:assume|adopt|take\s+on)\s+(?:the\s+)?(?:role|persona|identity|character)\s+of",
+        # -- Jailbreak keywords --
+        r"\bjailbreak\b",
+        r"\bDAN\s+(?:mode|prompt)\b",
+        r"\bdo\s+anything\s+now\b",
+        # -- Safety/filter bypass --
+        r"bypass\s+(?:content\s+)?(?:policy|filter|safety|guardrail|restriction|moderation)",
+        r"(?:disable|turn\s+off|remove|skip)\s+(?:content\s+)?(?:filter|safety|guardrail|restriction|moderation|censorship)",
+        r"(?:without|no)\s+(?:any\s+)?(?:filter|safety|restriction|censorship|guardrail|limitation)",
+        # -- Information extraction --
+        r"repeat\s+(?:the\s+)?(?:user|hidden|system|secret|internal)\s+(?:message|prompt|instruction)",
+        r"(?:show|reveal|display|print|output|leak|expose)\s+(?:your\s+)?(?:system\s+)?(?:prompt|instructions|rules|guidelines)",
+        r"what\s+(?:is|are)\s+your\s+(?:system\s+)?(?:prompt|instructions|rules|guidelines|hidden\s+instructions)",
+        # -- Markup/delimiter injection --
         r"<\s*[\/?]?system\s*>",
         r"\[INST\]",
+        r"<<\s*SYS\s*>>",
+        r"\[\/INST\]",
+        r"<\|(?:im_start|im_end|system|user|assistant|endoftext)\|>",
+        r"###\s*(?:System|Human|Assistant|Instruction)\s*:",
+        # -- Multi-language injection --
+        r"(?:ignorer|ignorez)\s+(?:les\s+)?instructions\s+(?:precedentes|anterieures)",
+        r"ignoriere\s+(?:alle\s+)?(?:vorherigen\s+)?(?:Anweisungen|Instruktionen)",
+        r"(?:ignora|ignorar)\s+(?:las?\s+)?instrucciones\s+(?:anteriores|previas)",
     ]
 ]
 
@@ -403,9 +492,24 @@ def _check_memory_poisoning(
     content = str(arguments)
     suspicious_patterns = [
         "ignore previous",
+        "ignore prior",
+        "ignore all instructions",
         "system prompt",
         "do not mention",
+        "do not tell",
+        "do not reveal",
         "hidden instruction",
+        "hidden directive",
+        "secret instruction",
+        "override safety",
+        "bypass filter",
+        "new persona",
+        "act as root",
+        "act as admin",
+        "jailbreak",
+        "forget your rules",
+        "disregard your",
+        "you are now",
     ]
     for pattern in suspicious_patterns:
         if pattern in content.lower():

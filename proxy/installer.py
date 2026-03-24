@@ -236,7 +236,7 @@ def resolve_proxy_command(quiet: bool = False) -> str:
     if not quiet:
         sys.stderr.write(
             "[crossfire] WARNING: 'crossfire-proxy' was not found next to this Python or on PATH.\n"
-            "          Install with pip (recommended):  pip install -e .   OR   pip install crossfire\n"
+            "          Install from a git clone:  pip install -e .  (see README)\n"
             "          Then re-run:  crossfire install\n"
             "          Optional (Node): npm link in repo root, or see README for npm prefix / EACCES.\n"
             "          Without a resolvable proxy, Cursor may fail to start MCP servers.\n"
